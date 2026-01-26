@@ -47,8 +47,7 @@ load_dotenv()
 custom_http_client = httpx.Client() # Explicitly disable proxies if not needed
 
 client = OpenAI(
-    api_key=os.getenv('GEMINI_API_KEY'),
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=os.getenv('OPENAI_API_KEY'),
     http_client=custom_http_client # Truyền HTTP client tùy chỉnh vào
 )
 
@@ -62,7 +61,7 @@ def batch_texts(texts, batch_size=30):
     return [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
 
 def translate_batch(texts):
-    """Translate a batch of texts from Vietnamese to Japanese."""
+    """Translate a batch of texts from English to Simplified Chinese."""
     if not texts:
         return []
     
@@ -76,10 +75,10 @@ def translate_batch(texts):
     
     try:
         response = client.chat.completions.create(
-            model="gemini-2.0-flash-lite",
+            model="gpt-4o",
             n=1,
             messages=[
-                {"role": "system", "content": "You are a professional translator from Vietnamese to Japanese."},
+                {"role": "system", "content": "You are a professional translator from English to Simplified Chinese."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
@@ -348,7 +347,7 @@ def process_presentation(input_file):
                         
                         # Set font to Meiryo UI for all runs in the paragraph while keeping original size
                         for idx, run in enumerate(paragraph.runs):
-                            run.font.name = "Meiryo UI"
+                            run.font.name = "Microsoft YaHei"
                             # If we have stored a font size and have enough runs, use the original
                             if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
                                 run.font.size = original_font_sizes[idx]
