@@ -6,11 +6,7 @@ from dotenv import load_dotenv
 import logging
 import time
 from datetime import datetime
-import httpx
-import sys
-import re
 
-# Настройка логирования
 def setup_logging():
     log_dir = 'SlideTranslateLog'
     os.makedirs(log_dir, exist_ok=True)
@@ -28,14 +24,14 @@ load_dotenv()
 
 # Инициализация OpenAI (ChatGPT)
 client = OpenAI(
-    api_key=os.getenv('OPENAI_API_KEY'), # Убедитесь, что в .env теперь этот ключ
+    api_key=os.getenv('OPENAI_API_KEY'),
 )
 
 # Загрузка шаблона промпта
 with open('prompt.txt', 'r', encoding='utf-8') as f:
     PROMPT_TEMPLATE = f.read()
 
-def batch_texts(texts, batch_size=20): # Уменьшил батч для стабильности GPT-4
+def batch_texts(texts, batch_size=20):
     return [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
 
 def translate_batch(texts):
@@ -47,7 +43,7 @@ def translate_batch(texts):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o", # Или gpt-3.5-turbo
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a professional translator from English to Chinese (Simplified). Maintain technical terms and formatting."},
                 {"role": "user", "content": prompt}
@@ -82,8 +78,6 @@ def save_presentation(prs, original_filename):
     prs.save(output_filename)
     return output_filename
 
-# ... (функции extract_table_texts и split_text_by_paragraphs остаются без изменений) ...
-
 def process_presentation(input_file):
     logging.info(f"Processing {input_file}")
     try:
@@ -91,7 +85,7 @@ def process_presentation(input_file):
         all_texts = []
         text_locations = []
         
-        # Сбор текстов (код из вашего примера)
+        # Сбор текстов
         for slide_idx, slide in enumerate(prs.slides):
             for shape_idx, shape in enumerate(slide.shapes):
                 if hasattr(shape, "text") and shape.text.strip():
@@ -102,7 +96,7 @@ def process_presentation(input_file):
                                 text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
                 
                 if hasattr(shape, "table"):
-                    # (Логика таблиц как в вашем исходнике)
+                    # Логика таблиц
                     pass
 
         # Перевод
@@ -126,7 +120,7 @@ def process_presentation(input_file):
                 
                 # Устанавливаем китайский шрифт
                 for run in paragraph.runs:
-                    run.font.name = "Microsoft YaHei" # Стандарт для Китая
+                    run.font.name = "Microsoft YaHei"
                     if original_font_size:
                         run.font.size = original_font_size
 
@@ -138,8 +132,17 @@ def process_presentation(input_file):
 
 def main():
     input_files = glob.glob('input/*.pptx')
+    
+    if not input_files:
+        print("[-] Файлы .pptx в папке 'input' не найдены!")
+        return
+
+    print(f"[*] Найдено файлов для перевода: {len(input_files)}")
+    
     for input_file in input_files:
+        print(f"\n[>] Начинаю обработку: {input_file}")
         process_presentation(input_file)
+        print(f"[+] Готово! Проверьте папку 'output'")
 
 if __name__ == "__main__":
     main()
