@@ -156,7 +156,7 @@ def extract_table_texts(shape):
     texts = []
     locations = []
     
-    if not hasattr(shape, "table"):
+    if not shape.has_table:
         return texts, locations
         
     for row_idx, row in enumerate(shape.table.rows):
@@ -242,7 +242,7 @@ def process_presentation(input_file):
                     all_texts.extend(paragraphs)
                 
                 # Handle tables
-                if hasattr(shape, "table"):
+                if shape.has_table:
                     table_texts, table_locations = extract_table_texts(shape)
                     all_texts.extend(table_texts)
                     
@@ -323,7 +323,7 @@ def process_presentation(input_file):
             elif location[0] == "table":
                 _, slide_idx, shape_idx, row_idx, cell_idx, para_idx = location
                 shape = prs.slides[slide_idx].shapes[shape_idx]
-                if hasattr(shape, "table"):
+                if shape.has_table:
                     cell = shape.table.rows[row_idx].cells[cell_idx]
                     if hasattr(cell, "text_frame") and para_idx < len(cell.text_frame.paragraphs):
                         paragraph = cell.text_frame.paragraphs[para_idx]
