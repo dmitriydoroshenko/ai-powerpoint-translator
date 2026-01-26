@@ -133,9 +133,9 @@ def save_presentation(prs, original_filename):
     counter = 1
     while True:
         if counter == 1:
-            output_filename = os.path.join(output_dir, f"{name_without_ext}_ja.pptx")
+            output_filename = os.path.join(output_dir, f"{name_without_ext}_cn.pptx")
         else:
-            output_filename = os.path.join(output_dir, f"{name_without_ext}_ja_{counter}.pptx")
+            output_filename = os.path.join(output_dir, f"{name_without_ext}_cn_{counter}.pptx")
         
         try:
             prs.save(output_filename)
@@ -209,7 +209,7 @@ def split_text_by_paragraphs(text):
     return result
 
 def process_presentation(input_file):
-    """Process a PowerPoint presentation, translating text from Vietnamese to Japanese."""
+    """Process a PowerPoint presentation, translating text from English to Simplified Chinese."""
     logging.info(f"Processing {input_file}")
     
     try:
@@ -297,9 +297,9 @@ def process_presentation(input_file):
                     
                     paragraph.text = translated_text
                     
-                    # Set font to Meiryo UI for all runs in the paragraph while keeping original size
+                    # Set font to Microsoft YaHei for all runs in the paragraph while keeping original size
                     for idx, run in enumerate(paragraph.runs):
-                        run.font.name = "Meiryo UI"
+                        run.font.name = "Microsoft YaHei"
                         # If we have stored a font size and have enough runs, use the original
                         if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
                             run.font.size = original_font_sizes[idx]
@@ -345,7 +345,7 @@ def process_presentation(input_file):
                         
                         paragraph.text = translated_text
                         
-                        # Set font to Meiryo UI for all runs in the paragraph while keeping original size
+                        # Set font to Microsoft YaHei for all runs in the paragraph while keeping original size
                         for idx, run in enumerate(paragraph.runs):
                             run.font.name = "Microsoft YaHei"
                             # If we have stored a font size and have enough runs, use the original
