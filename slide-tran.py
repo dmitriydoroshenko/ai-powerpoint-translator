@@ -91,7 +91,8 @@ def translate_batch(texts):
         logging.info("=== End Response ===\n")
         
         # Parse the response to get translations
-        translations = response.choices[0].message.content.strip().split("\n---\n")
+        raw_content = response.choices[0].message.content.strip()
+        translations = [t.strip() for t in raw_content.split("\n---\n")]
         
         # Log parsed translations
         logging.info("=== Parsed Translations ===")
