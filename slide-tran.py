@@ -326,10 +326,13 @@ def process_presentation(input_file):
                             logging.warning("Failed to restore bullet formatting")
             
             elif location[0] == "text":
-                # This is a fallback for text without proper paragraph objects
                 _, slide_idx, shape_idx, _ = location
-                # Implementation would depend on how to handle this edge case
-                pass
+                shape = prs.slides[slide_idx].shapes[shape_idx]
+                shape.text = translated_text
+                if hasattr(shape, "text_frame"):
+                    for paragraph in shape.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.name = "Microsoft YaHei"
                 
             elif location[0] == "table":
                 _, slide_idx, shape_idx, row_idx, cell_idx, para_idx = location
