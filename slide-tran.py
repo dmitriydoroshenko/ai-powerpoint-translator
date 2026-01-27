@@ -76,6 +76,7 @@ def translate_batch(texts):
             "Task: Translate values to Simplified Chinese. Keep keys unchanged. "
             "Output: Return a valid JSON object."
         )
+
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -395,10 +396,6 @@ def process_presentation(input_file):
         raise
 
 def main():
-    # Setup logging
-    log_file = setup_logging()
-    logging.info(f"Translation log file: {log_file}")
-    
     # Find all PPTX files in the input directory
     input_files = glob.glob('input/*.pptx')
     
