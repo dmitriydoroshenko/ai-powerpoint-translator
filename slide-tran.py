@@ -1,5 +1,6 @@
 import os
 import glob
+import json
 from pptx import Presentation
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -65,59 +66,55 @@ def translate_batch(texts):
     if not texts:
         return []
     
-    prompt = PROMPT_TEMPLATE.format(texts="\n---\n".join(texts))
+    payload = {f"item_{i}": text for i, text in enumerate(texts)}
+    json_payload = json.dumps(payload, ensure_ascii=False)
     
-    # Log the request
-    logging.info("=== Translation Request ===")
+    # Логируем запрос
+    logging.info(f"=== Translation Request (Batch size: {len(texts)}) ===")
     for idx, text in enumerate(texts):
-        logging.info(f"Text {idx + 1}: {text}")
-    logging.info("=== End Request ===\n")
+        logging.info(f"Input Item {idx}: {text}")
     
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            n=1,
             messages=[
-                {"role": "system", "content": "You are a professional translator from English to Simplified Chinese."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system", 
+                    "content": "You are a professional translator. Return a JSON object where keys match the input and values are Translated Simplified Chinese."
+                },
+                {"role": "user", "content": f"Translate these items:\n{json_payload}"}
             ],
-            temperature=0.3,
-            stream=False
+            response_format={ "type": "json_object" },
+            temperature=0.3
         )
         
-        # Log the response
-        logging.info("=== Translation Response ===")
-        logging.info(f"Raw response: {response.choices[0].message.content}")
-        logging.info("=== End Response ===\n")
-        
-        # Parse the response to get translations
         raw_content = response.choices[0].message.content.strip()
-        translations = [t.strip() for t in raw_content.split("\n---\n")]
         
-        # Log parsed translations
+        # Логируем сырой ответ от API
+        logging.info("=== Raw API Response ===")
+        logging.info(raw_content)
+        
+        translated_data = json.loads(raw_content)
+        translations = []
+        
         logging.info("=== Parsed Translations ===")
-        for idx, (text, trans) in enumerate(zip(texts, translations)):
-            logging.info(f"Text {idx + 1}:")
-            logging.info(f"Original: {text}")
-            logging.info(f"Translated: {trans}")
-            logging.info("---")
-        logging.info("=== End Parsed Translations ===\n")
-        
-        # Ensure we have the same number of translations as input texts
-        if len(translations) != len(texts):
-            logging.warning(f"Received {len(translations)} translations for {len(texts)} texts")
-            # Pad or trim translations to match input count
-            if len(translations) < len(texts):
-                translations.extend([""] * (len(texts) - len(translations)))
-                logging.warning("Added empty translations to match input count")
+        for i in range(len(texts)):
+            key = f"item_{i}"
+            # Если ключа нет, логируем предупреждение и оставляем оригинал
+            if key in translated_data:
+                trans_text = translated_data[key].strip()
+                translations.append(trans_text)
+                logging.info(f"Item {i}: OK -> {trans_text}")
             else:
-                translations = translations[:len(texts)]
-                logging.warning("Trimmed excess translations")
+                logging.warning(f"Item {i}: MISSING in response! Using original text.")
+                translations.append(texts[i])
         
+        logging.info("=== Batch Processing Completed ===\n")
         return translations
         
     except Exception as e:
         logging.error(f"Error during translation: {str(e)}")
+        print(f"\n[ERROR] Check logs: {str(e)}")
         raise
 
 def save_presentation(prs, original_filename):
