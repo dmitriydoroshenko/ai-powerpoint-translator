@@ -52,11 +52,6 @@ client = OpenAI(
     http_client=custom_http_client # Truyền HTTP client tùy chỉnh vào
 )
 
-
-# Load translation prompt
-with open('prompt.txt', 'r', encoding='utf-8') as f:
-    PROMPT_TEMPLATE = f.read()
-
 def batch_texts(texts, batch_size=30):
     """Group texts into batches for translation."""
     return [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]

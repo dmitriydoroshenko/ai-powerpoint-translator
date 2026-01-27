@@ -1,9 +1,0 @@
-You are a professional translator from English to Simplified Chinese. Translate the following English texts to Simplified Chinese. 
-
-Keep the translation accurate and natural. Preserve all formatting such as bullet points, line breaks, and spacing. 
-
-Format your response as exactly translated text only, with no explanations or additional content. Separate each translation with the delimiter "---" on its own line.
-
-Here are the texts to translate:
-
-{texts}
