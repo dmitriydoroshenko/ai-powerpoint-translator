@@ -287,6 +287,15 @@ def process_presentation(input_file):
                     if hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet"):
                         has_bullet = True
 
+                    # Extract original color before clearing text
+                    orig_color = None
+                    if paragraph.runs:
+                        try:
+                            if hasattr(paragraph.runs[0].font.color, 'rgb'):
+                                orig_color = paragraph.runs[0].font.color.rgb
+                        except:
+                            pass
+
                     # Store original font sizes before updating text
                     original_font_sizes = []
                     for run in paragraph.runs:
@@ -303,6 +312,10 @@ def process_presentation(input_file):
                         # If we have stored a font size and have enough runs, use the original
                         if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
                             run.font.size = original_font_sizes[idx]
+                        
+                        # Apply original color if found
+                        if orig_color:
+                            run.font.color.rgb = orig_color
                     
                     # Restore original formatting
                     paragraph.alignment = original_alignment
@@ -335,6 +348,15 @@ def process_presentation(input_file):
                         if hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet"):
                             has_bullet = True
                         
+                        # Extract original color for tables
+                        orig_color = None
+                        if paragraph.runs:
+                            try:
+                                if hasattr(paragraph.runs[0].font.color, 'rgb'):
+                                    orig_color = paragraph.runs[0].font.color.rgb
+                            except:
+                                pass
+
                         # Store original font sizes before updating text
                         original_font_sizes = []
                         for run in paragraph.runs:
@@ -351,6 +373,10 @@ def process_presentation(input_file):
                             # If we have stored a font size and have enough runs, use the original
                             if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
                                 run.font.size = original_font_sizes[idx]
+                            
+                            # Apply color to table text
+                            if orig_color:
+                                run.font.color.rgb = orig_color
                         
                         # Restore original formatting
                         paragraph.alignment = original_alignment
