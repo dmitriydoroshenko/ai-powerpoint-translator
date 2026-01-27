@@ -106,6 +106,18 @@ def translate_batch(texts):
                 translations.append(texts[i])
         
         logging.info("=== Batch Processing Completed ===\n")
+
+        # Логирование использования токенов:
+        usage = response.usage
+        logging.info(f"Tokens used - Prompt: {usage.prompt_tokens}, "
+                    f"Completion: {usage.completion_tokens}, "
+                    f"Total: {usage.total_tokens}")
+        
+        # Примерная стоимость (для gpt-4o на момент 2024-2025):
+        # Цена за 1 млн токенов: $2.50 (input) / $10.00 (output) - проверьте актуальные цены!
+        cost = (usage.prompt_tokens * 2.50 / 1_000_000) + (usage.completion_tokens * 10.00 / 1_000_000)
+        logging.info(f"Estimated batch cost: ${cost:.4f}")
+
         return translations
         
     except Exception as e:
