@@ -21,7 +21,7 @@ def setup_logging():
     
     # Create a timestamp for the log file
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    log_file = os.path.join(log_dir, f'log_{timestamp}.log')
+    log_file = os.path.join(log_dir, f'{timestamp}.log')
     
     # Configure logging to only file
     logging.basicConfig(
