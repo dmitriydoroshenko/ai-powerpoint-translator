@@ -20,8 +20,8 @@ def setup_logging():
     os.makedirs(log_dir, exist_ok=True)
     
     # Create a timestamp for the log file
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_file = os.path.join(log_dir, f'translation_{timestamp}.log')
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    log_file = os.path.join(log_dir, f'log_{timestamp}.log')
     
     # Configure logging to only file
     logging.basicConfig(
@@ -42,9 +42,6 @@ load_dotenv()
 
 
 # Initialize OpenAI client
-# Tạo một HTTP client tùy chỉnh, ở đây chúng ta không cấu hình proxy
-# Nếu bạn CẦN dùng proxy, bạn phải cấu hình nó đúng cách tại đây.
-# Ví dụ: proxies = {"http://": os.getenv("HTTP_PROXY"), "https://": os.getenv("HTTPS_PROXY")}
 custom_http_client = httpx.Client() # Explicitly disable proxies if not needed
 
 client = OpenAI(
