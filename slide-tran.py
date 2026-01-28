@@ -157,6 +157,20 @@ def save_presentation(prs, original_filename):
             logging.error(f"Error saving presentation: {str(e)}")
             raise
 
+def has_hlink(paragraph):
+    """Проверяет наличие гиперссылок в параграфе с защитой от пустых rId."""
+    for run in paragraph.runs:
+        try:
+            hlink = run.hyperlink
+            if hlink is not None:
+                if hasattr(hlink, 'rId') and hlink.rId:
+                    return True
+                if hlink.address is not None:
+                    return True
+        except Exception:
+            return True
+    return False
+
 def extract_table_texts(shape):
     """Extract texts from a table shape."""
     texts = []
@@ -168,11 +182,12 @@ def extract_table_texts(shape):
     for row_idx, row in enumerate(shape.table.rows):
         for cell_idx, cell in enumerate(row.cells):
             if cell.text.strip():
-                # Process each paragraph in the cell separately
-                para_texts = split_text_by_paragraphs(cell.text)
-                for i, para_text in enumerate(para_texts):
-                    texts.append(para_text)
-                    locations.append((row_idx, cell_idx, i))  # Include paragraph index
+                for para_idx, para in enumerate(cell.text_frame.paragraphs):
+                    if para.text.strip() and not has_hlink(para):
+                        texts.append(para.text.strip())
+                        locations.append((row_idx, cell_idx, para_idx))
+                    elif has_hlink(para):
+                        logging.info(f"Skipping table cell paragraph with hyperlink: {para.text[:30]}...")
     
     return texts, locations
 
@@ -227,32 +242,20 @@ def process_presentation(input_file):
         for slide_idx, slide in enumerate(prs.slides):
             for shape_idx, shape in enumerate(slide.shapes):
                 # Handle regular text shapes
-                if hasattr(shape, "text") and shape.text.strip():
-                    # Split text by paragraphs or bullet points
-                    paragraphs = []
-                    
-                    # Extract actual paragraphs from the text frame
-                    if hasattr(shape, "text_frame"):
-                        for para_idx, para in enumerate(shape.text_frame.paragraphs):
-                            if para.text.strip():
-                                paragraphs.append(para.text.strip())
-                                text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
-                    else:
-                        # Fallback: split by line breaks and potential bullets
-                        split_texts = split_text_by_paragraphs(shape.text)
-                        for para_text in split_texts:
-                            paragraphs.append(para_text)
-                            # Use a special index since we don't have actual paragraph objects
-                            text_locations.append(("text", slide_idx, shape_idx, len(all_texts)))
-                    
-                    all_texts.extend(paragraphs)
+                if hasattr(shape, "text_frame") and shape.text.strip():
+                    for para_idx, para in enumerate(shape.text_frame.paragraphs):
+                        if para.text.strip():
+                            if has_hlink(para):
+                                logging.info(f"Skipping paragraph with hyperlink: {para.text[:30]}...")
+                                continue
+                                
+                            all_texts.append(para.text.strip())
+                            text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
                 
                 # Handle tables
                 if shape.has_table:
                     table_texts, table_locations = extract_table_texts(shape)
                     all_texts.extend(table_texts)
-                    
-                    # Convert table locations to our standard format
                     for (row_idx, cell_idx, para_idx) in table_locations:
                         text_locations.append(("table", slide_idx, shape_idx, row_idx, cell_idx, para_idx))
         
