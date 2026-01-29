@@ -10,8 +10,6 @@ from datetime import datetime
 import httpx
 import sys
 import re
-from pptx.enum.text import PP_ALIGN
-from pptx.util import Pt
 
 # Set up logging first, before any other imports
 def setup_logging():
