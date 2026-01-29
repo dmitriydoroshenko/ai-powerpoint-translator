@@ -70,12 +70,14 @@ def translate_batch(texts):
         SYSTEM_ROLE = (
             "You are a professional mobile game localizer (English to Simplified Chinese). "
             "Expertise: gaming terminology, UI/UX constraints, and mobile gaming slang. "
+            "IMPORTANT: Preserve all special characters like vertical tabs (\\u000b), "
+            "newlines (\\n), and specific spacing. Do not clean up the formatting. "
             "Task: Translate values to Simplified Chinese. Keep keys unchanged. "
             "Output: Return a valid JSON object."
         )
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": SYSTEM_ROLE},
                 {"role": "user", "content": f"Translate these items:\n{json_payload}"}
