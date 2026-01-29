@@ -115,9 +115,9 @@ def translate_batch(texts):
                     f"Completion: {usage.completion_tokens}, "
                     f"Total: {usage.total_tokens}")
         
-        # Примерная стоимость (для gpt-4o на момент 2024-2025):
-        # Цена за 1 млн токенов: $2.50 (input) / $10.00 (output) - проверьте актуальные цены!
-        cost = (usage.prompt_tokens * 2.50 / 1_000_000) + (usage.completion_tokens * 10.00 / 1_000_000)
+        # Примерная стоимость для gpt-5.2 на момент 2026:
+        # Цена за 1 млн токенов: $1.75 (input) / $14.00 (output)
+        cost = (usage.prompt_tokens * 1.75 / 1_000_000) + (usage.completion_tokens * 14.00 / 1_000_000)
         logging.info(f"Estimated batch cost: ${cost:.4f}")
 
         return translations
