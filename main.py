@@ -10,41 +10,17 @@ from datetime import datetime
 import httpx
 import sys
 import re
+from logger_config import setup_logging
 
-# Set up logging first, before any other imports
-def setup_logging():
-    # Create logs directory if it doesn't exist
-    log_dir = 'SlideTranslateLog'
-    os.makedirs(log_dir, exist_ok=True)
-    
-    # Create a timestamp for the log file
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    log_file = os.path.join(log_dir, f'{timestamp}.log')
-    
-    # Configure logging to only file
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file, encoding='utf-8')
-        ]
-    )
-    return log_file
-
-# Initialize logging first
-log_file = setup_logging()
-logging.info("Logging system initialized")
-
-# Load environment variables
+setup_logging()
 load_dotenv()
 
-
 # Initialize OpenAI client
-custom_http_client = httpx.Client() # Explicitly disable proxies if not needed
+custom_http_client = httpx.Client()
 
 client = OpenAI(
     api_key=os.getenv('OPENAI_API_KEY'),
-    http_client=custom_http_client # Truyền HTTP client tùy chỉnh vào
+    http_client=custom_http_client
 )
 
 def batch_texts(texts, batch_size=30):
