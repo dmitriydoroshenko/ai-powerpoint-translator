@@ -2,7 +2,6 @@ import os
 import glob
 from pptx import Presentation
 import logging
-import re
 from logger_config import setup_logging
 from translator import translate_all
 from file_utils import save_presentation
@@ -42,44 +41,6 @@ def extract_table_texts(shape):
                         logging.info(f"Skipping table cell paragraph with hyperlink: {para.text[:30]}...")
     
     return texts, locations
-
-def split_text_by_paragraphs(text):
-    """Split text into paragraphs, handling bullet points and line breaks."""
-    # First, split by line breaks
-    lines = text.split('\n')
-    result = []
-    current_text = ""
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            if current_text:
-                result.append(current_text)
-                current_text = ""
-            continue
-            
-        # Check if line starts with bullet or numbering
-        if re.match(r'^[•\-\*]|\d+[.)]', line):
-            # This is likely a new bullet or numbered item
-            if current_text:
-                result.append(current_text)
-            current_text = line
-        elif current_text:
-            # Check if previous line had a bullet and this is continuation
-            if re.match(r'^[•\-\*]|\d+[.)]', current_text.split('\n')[0]):
-                current_text += '\n' + line
-            else:
-                # Likely a separate paragraph
-                result.append(current_text)
-                current_text = line
-        else:
-            current_text = line
-    
-    # Add the last paragraph if any
-    if current_text:
-        result.append(current_text)
-        
-    return result
 
 def process_presentation(input_file):
     """Process a PowerPoint presentation, translating text from English to Simplified Chinese."""
