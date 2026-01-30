@@ -31,6 +31,7 @@ def save_presentation(prs, original_filename):
         try:
             prs.save(output_filename)
             logging.info(f"Successfully saved presentation to {output_filename}")
+            print(f"✅ Файл сохранен: {output_filename}")
             return output_filename
         except PermissionError:
             logging.warning(f"Permission denied when saving to {output_filename}. File might be open in PowerPoint.")
@@ -117,6 +118,7 @@ def split_text_by_paragraphs(text):
 def process_presentation(input_file):
     """Process a PowerPoint presentation, translating text from English to Simplified Chinese."""
     logging.info(f"Processing {input_file}")
+    print(f"\n Начало обработки файла: {os.path.basename(input_file)}")
     
     try:
         prs = Presentation(input_file)
@@ -149,7 +151,6 @@ def process_presentation(input_file):
             return
         
         translated_texts = translate_all(all_texts)
-        print("\nTranslation completed!")
         
         # Update presentation with translations
         for location, translated_text in zip(text_locations, translated_texts):

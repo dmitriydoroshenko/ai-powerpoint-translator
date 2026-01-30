@@ -18,19 +18,27 @@ SYSTEM_ROLE = (
 )
 
 def translate_all(texts, model="gpt-5.2", batch_size=30):
-    """
-    Основная точка входа. Принимает список текстов, 
-    сама бьет на батчи и возвращает полный перевод.
-    """
+    """Принимает список текстов и возвращает перевод."""
+
     if not texts:
+        print("Список текстов пуст.")
         return []
 
-    # 1. Инкапсулированное разбиение на батчи
-    batches = [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
+    total_texts = len(texts)
+    batches = [texts[i:i + batch_size] for i in range(0, total_texts, batch_size)]
     translated_result = []
+    
+    print(f"\n{'='*20}")
+    print(f"🚀 НАЧАЛО ПЕРЕВОДА")
+    print(f"Всего строк: {total_texts}")
+    print(f"Размер батча: {batch_size}")
+    print(f"{'='*20}\n")
 
     for i, batch in enumerate(batches):
+        current_count = len(translated_result)
         logging.info(f"Translating batch {i+1}/{len(batches)} (size: {len(batch)})")
+        
+        print(f"⏳ Обработка батча {i+1}/{len(batches)}... (Переведено: {current_count}/{total_texts})", end="\r")
         
         translations = _translate_batch(batch, model)
         translated_result.extend(translations)
@@ -38,10 +46,14 @@ def translate_all(texts, model="gpt-5.2", batch_size=30):
         if i < len(batches) - 1:
             time.sleep(1) 
 
+    print(f"\n\n{'='*20}")
+    print(f"✅ ПЕРЕВОД ЗАВЕРШЕН")
+    print(f"Итого обработано: {len(translated_result)}/{total_texts}")
+    print(f"{'='*20}\n")
+
     return translated_result
 
 def _translate_batch(batch_texts, model):
-    """Внутренняя функция для обработки одного батча."""
     payload = {f"item_{i}": text for i, text in enumerate(batch_texts)}
     
     try:
@@ -56,8 +68,6 @@ def _translate_batch(batch_texts, model):
         )
 
         translated_data = json.loads(response.choices[0].message.content)
-        
-        # Собираем результаты, подставляя оригинал при отсутствии ключа
         batch_results = [translated_data.get(f"item_{i}", batch_texts[i]) for i in range(len(batch_texts))]
         
         _log_usage(response.usage)

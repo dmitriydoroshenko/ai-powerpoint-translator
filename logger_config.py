@@ -23,5 +23,4 @@ def setup_logging():
         ]
     )
     
-    logging.info("Система логирования инициализирована.")
     return log_file
