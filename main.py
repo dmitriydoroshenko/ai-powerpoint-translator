@@ -1,7 +1,6 @@
 import os
 import glob
 from pptx import Presentation
-from dotenv import load_dotenv
 import logging
 import re
 from logger_config import setup_logging
@@ -9,7 +8,6 @@ from translator import translate_all
 from file_utils import save_presentation
 
 setup_logging()
-load_dotenv()
 
 def has_hlink(paragraph):
     """Проверяет наличие гиперссылок в параграфе с защитой от пустых rId."""
