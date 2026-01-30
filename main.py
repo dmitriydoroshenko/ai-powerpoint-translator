@@ -1,105 +1,14 @@
 import os
 import glob
-import json
 from pptx import Presentation
-from openai import OpenAI
 from dotenv import load_dotenv
 import logging
-import time
-from datetime import datetime
-import httpx
-import sys
 import re
 from logger_config import setup_logging
+from translator import translate_all
 
 setup_logging()
 load_dotenv()
-
-# Initialize OpenAI client
-custom_http_client = httpx.Client()
-
-client = OpenAI(
-    api_key=os.getenv('OPENAI_API_KEY'),
-    http_client=custom_http_client
-)
-
-def batch_texts(texts, batch_size=30):
-    """Group texts into batches for translation."""
-    return [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)]
-
-def translate_batch(texts):
-    """Translate a batch of texts from English to Simplified Chinese."""
-    if not texts:
-        return []
-    
-    payload = {f"item_{i}": text for i, text in enumerate(texts)}
-    json_payload = json.dumps(payload, ensure_ascii=False)
-    
-    # Логируем запрос
-    logging.info(f"=== Translation Request (Batch size: {len(texts)}) ===")
-    for idx, text in enumerate(texts):
-        logging.info(f"Input Item {idx}: {text}")
-    
-    try:
-        SYSTEM_ROLE = (
-            "You are a professional mobile game localizer (English to Simplified Chinese). "
-            "Expertise: gaming terminology, UI/UX constraints, and mobile gaming slang. "
-            "IMPORTANT: Preserve all special characters like vertical tabs (\\u000b), "
-            "newlines (\\n), and specific spacing. Do not clean up the formatting. "
-            "Task: Translate values to Simplified Chinese. Keep keys unchanged. "
-            "Output: Return a valid JSON object."
-        )
-
-        response = client.chat.completions.create(
-            model="gpt-5.2",
-            messages=[
-                {"role": "system", "content": SYSTEM_ROLE},
-                {"role": "user", "content": f"Translate these items:\n{json_payload}"}
-            ],
-            response_format={ "type": "json_object" },
-            temperature=0.3
-        )
-        
-        raw_content = response.choices[0].message.content.strip()
-        
-        # Логируем сырой ответ от API
-        logging.info("=== Raw API Response ===")
-        logging.info(raw_content)
-        
-        translated_data = json.loads(raw_content)
-        translations = []
-        
-        logging.info("=== Parsed Translations ===")
-        for i in range(len(texts)):
-            key = f"item_{i}"
-            # Если ключа нет, логируем предупреждение и оставляем оригинал
-            if key in translated_data:
-                trans_text = translated_data[key].strip()
-                translations.append(trans_text)
-                logging.info(f"Item {i}: OK -> {trans_text}")
-            else:
-                logging.warning(f"Item {i}: MISSING in response! Using original text.")
-                translations.append(texts[i])
-        
-        logging.info("=== Batch Processing Completed ===\n")
-
-        # Логирование использования токенов:
-        usage = response.usage
-        logging.info(f"Tokens used - Prompt: {usage.prompt_tokens}, "
-                    f"Completion: {usage.completion_tokens}, "
-                    f"Total: {usage.total_tokens}")
-        
-        # Примерная стоимость для gpt-5.2 на момент 2026:
-        # Цена за 1 млн токенов: $1.75 (input) / $14.00 (output)
-        cost = (usage.prompt_tokens * 1.75 / 1_000_000) + (usage.completion_tokens * 14.00 / 1_000_000)
-        logging.info(f"Estimated batch cost: ${cost:.4f}")
-
-        return translations
-        
-    except Exception as e:
-        logging.error(f"Error during translation: {str(e)}")
-        print(f"\n[ERROR] Check logs: {str(e)}")
-        raise
 
 def save_presentation(prs, original_filename):
     """Save presentation with error handling and unique filename."""
@@ -239,22 +148,7 @@ def process_presentation(input_file):
             logging.info(f"No text found in {input_file}")
             return
         
-        # Translate texts in batches
-        translated_texts = []
-        batches = batch_texts(all_texts)
-        
-        print(f"\nTranslating {os.path.basename(input_file)}:")
-        for i, batch in enumerate(batches):
-            progress = (i + 1) / len(batches) * 100
-            sys.stdout.write(f"\rProgress: [{int(progress)}%] Batch {i+1}/{len(batches)}")
-            sys.stdout.flush()
-            
-            logging.info(f"Translating batch {i+1}/{len(batches)} (size: {len(batch)} texts)")
-            translations = translate_batch(batch)
-            translated_texts.extend(translations)
-            
-            if i < len(batches) - 1:
-                time.sleep(2)
+        translated_texts = translate_all(all_texts)
         print("\nTranslation completed!")
         
         # Update presentation with translations
