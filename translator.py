@@ -17,7 +17,9 @@ SYSTEM_ROLE = (
     "Output: Return a valid JSON object."
 )
 
-def translate_all(texts, model="gpt-5.2", batch_size=30):
+BATCH_SIZE=30
+
+def translate_all(texts):
     """Принимает список текстов и возвращает перевод."""
 
     if not texts:
@@ -25,13 +27,13 @@ def translate_all(texts, model="gpt-5.2", batch_size=30):
         return []
 
     total_texts = len(texts)
-    batches = [texts[i:i + batch_size] for i in range(0, total_texts, batch_size)]
+    batches = [texts[i:i + BATCH_SIZE] for i in range(0, total_texts, BATCH_SIZE)]
     translated_result = []
     
     print(f"\n{'='*20}")
     print(f"🚀 НАЧАЛО ПЕРЕВОДА")
     print(f"Всего строк: {total_texts}")
-    print(f"Размер батча: {batch_size}")
+    print(f"Размер батча: {BATCH_SIZE}")
     print(f"{'='*20}\n")
 
     for i, batch in enumerate(batches):
@@ -40,7 +42,7 @@ def translate_all(texts, model="gpt-5.2", batch_size=30):
         
         print(f"⏳ Обработка батча {i+1}/{len(batches)}... (Переведено: {current_count}/{total_texts})", end="\r")
         
-        translations = _translate_batch(batch, model)
+        translations = _translate_batch(batch)
         translated_result.extend(translations)
         
         if i < len(batches) - 1:
@@ -53,12 +55,12 @@ def translate_all(texts, model="gpt-5.2", batch_size=30):
 
     return translated_result
 
-def _translate_batch(batch_texts, model):
+def _translate_batch(batch_texts):
     payload = {f"item_{i}": text for i, text in enumerate(batch_texts)}
     
     try:
         response = client.chat.completions.create(
-            model=model,
+            model="gpt-5.2",
             messages=[
                 {"role": "system", "content": SYSTEM_ROLE},
                 {"role": "user", "content": f"Translate these items:\n{json.dumps(payload, ensure_ascii=False)}"}
