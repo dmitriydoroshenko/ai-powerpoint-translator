@@ -2,16 +2,16 @@ import os
 import logging
 
 def save_presentation(prs, original_filename):
-    """Save presentation with error handling and unique filename."""
-    # Create output directory if it doesn't exist
+    """Сохраняет презентацию с обработкой ошибок и созданием уникального имени файла."""
+    # Создаем директорию для вывода, если она не существует
     output_dir = 'output'
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate base output filename
+    # Формируем базовое имя выходного файла
     base_name = os.path.basename(original_filename)
     name_without_ext = os.path.splitext(base_name)[0]
     
-    # Try to save with different names if file exists or is locked
+    # Пытаемся сохранить файл, подбирая имя, если файл занят или уже существует
     counter = 1
     while True:
         if counter == 1:
@@ -21,15 +21,16 @@ def save_presentation(prs, original_filename):
         
         try:
             prs.save(output_filename)
-            logging.info(f"Successfully saved presentation to {output_filename}")
+            logging.info(f"Презентация успешно сохранена: {output_filename}")
             print(f"✅ Файл сохранен: {output_filename}")
             return output_filename
         except PermissionError:
-            logging.warning(f"Permission denied when saving to {output_filename}. File might be open in PowerPoint.")
-            logging.info("Please close the file in PowerPoint if it's open.")
+            logging.warning(f"Ошибка доступа при сохранении {output_filename}. Возможно, файл открыт в PowerPoint.")
+            logging.info("Пожалуйста, закройте файл в PowerPoint, если он открыт.")
+            print(f"Ошибка доступа при сохранении {output_filename}. Возможно, файл открыт в PowerPoint.")
             counter += 1
-            if counter > 5:  # Limit number of attempts
-                raise Exception(f"Failed to save presentation after {counter-1} attempts. Please ensure the file is not open in PowerPoint.")
+            if counter > 5:  # Ограничение количества попыток
+                raise Exception(f"Не удалось сохранить презентацию после {counter-1} попыток. Убедитесь, что файл не открыт в сторонних программах.")
         except Exception as e:
-            logging.error(f"Error saving presentation: {str(e)}")
+            logging.error(f"Ошибка при сохранении презентации: {str(e)}")
             raise

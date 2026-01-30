@@ -18,8 +18,6 @@ def setup_logging():
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(log_file, encoding='utf-8'),
-            # Добавим вывод в консоль, чтобы видеть прогресс в реальном времени
-            # logging.StreamHandler() 
         ]
     )
     
