@@ -42,157 +42,135 @@ def extract_table_texts(shape):
     
     return texts, locations
 
-def process_presentation(input_file):
-    """Обрабатывает презентацию PowerPoint, переводя текст с английского на упрощенный китайский."""
-    logging.info(f"Обработка файла: {input_file}")
-    print(f"\nОбработки файла: {os.path.basename(input_file)}")
+def collect_text_data(prs):
+    """Извлекает весь текст и его местоположения из презентации."""
+    all_texts = []
+    text_locations = []
     
-    try:
-        prs = Presentation(input_file)
-        all_texts = []
-        text_locations = []
-        
-        # Извлечение всего текста, требующего перевода
-        for slide_idx, slide in enumerate(prs.slides):
-            for shape_idx, shape in enumerate(slide.shapes):
-                # Обработка обычных текстовых блоков
-                if hasattr(shape, "text_frame") and shape.text.strip():
-                    for para_idx, para in enumerate(shape.text_frame.paragraphs):
-                        if para.text.strip():
-                            if has_hlink(para):
-                                logging.info(f"Пропуск параграфа с гиперссылкой: {para.text[:30]}...")
-                                continue
-                                
-                            all_texts.append(para.text.strip())
-                            text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
+    for slide_idx, slide in enumerate(prs.slides):
+        for shape_idx, shape in enumerate(slide.shapes):
+            # Обработка обычных текстовых блоков
+            if hasattr(shape, "text_frame") and shape.text.strip():
+                for para_idx, para in enumerate(shape.text_frame.paragraphs):
+                    if para.text.strip():
+                        if has_hlink(para):
+                            logging.info(f"Пропуск параграфа с гиперссылкой: {para.text[:30]}...")
+                            continue
+                        
+                        all_texts.append(para.text.strip())
+                        text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
+            
+            # Обработка таблиц
+            if shape.has_table:
+                table_texts, table_locations = extract_table_texts(shape)
+                all_texts.extend(table_texts)
+                for (row_idx, cell_idx, para_idx) in table_locations:
+                    text_locations.append(("table", slide_idx, shape_idx, row_idx, cell_idx, para_idx))
+    
+    return all_texts, text_locations
+
+def apply_translations(prs, text_locations, translated_texts):
+    """Обновляет презентацию переведенным текстом с сохранением форматирования."""
+    for location, translated_text in zip(text_locations, translated_texts):
+        if location[0] == "paragraph":
+            _, slide_idx, shape_idx, para_idx = location
+            shape = prs.slides[slide_idx].shapes[shape_idx]
+            if hasattr(shape, "text_frame") and para_idx < len(shape.text_frame.paragraphs):
+                paragraph = shape.text_frame.paragraphs[para_idx]
                 
-                # Обработка таблиц
-                if shape.has_table:
-                    table_texts, table_locations = extract_table_texts(shape)
-                    all_texts.extend(table_texts)
-                    for (row_idx, cell_idx, para_idx) in table_locations:
-                        text_locations.append(("table", slide_idx, shape_idx, row_idx, cell_idx, para_idx))
-        
-        if not all_texts:
-            logging.info(f"В файле {input_file} текст не найден")
-            return
-        
-        # Перевод собранного текста
-        translated_texts = translate_all(all_texts)
-        
-        # Обновление презентации переведенным текстом
-        for location, translated_text in zip(text_locations, translated_texts):
-            if location[0] == "paragraph":
-                _, slide_idx, shape_idx, para_idx = location
-                shape = prs.slides[slide_idx].shapes[shape_idx]
-                if hasattr(shape, "text_frame") and para_idx < len(shape.text_frame.paragraphs):
-                    paragraph = shape.text_frame.paragraphs[para_idx]
+                # Сохранение исходного форматирования
+                original_alignment = paragraph.alignment
+                original_level = paragraph.level
+                has_bullet = hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet")
+
+                orig_color = None
+                if paragraph.runs:
+                    try:
+                        if hasattr(paragraph.runs[0].font.color, 'rgb'):
+                            orig_color = paragraph.runs[0].font.color.rgb
+                    except: pass
+
+                original_font_sizes = [
+                    run.font.size if hasattr(run, "font") and hasattr(run.font, "size") else None 
+                    for run in paragraph.runs
+                ]
+                
+                paragraph.text = translated_text
+                
+                for idx, run in enumerate(paragraph.runs):
+                    run.font.name = "Microsoft YaHei"
+                    if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
+                        run.font.size = original_font_sizes[idx]
+                    if orig_color:
+                        run.font.color.rgb = orig_color
+                
+                paragraph.alignment = original_alignment
+                paragraph.level = original_level
+                if has_bullet and hasattr(paragraph, "format"):
+                    try: paragraph.format.bullet.enable = True
+                    except: logging.warning("Не удалось восстановить форматирование маркеров")
+
+        elif location[0] == "table":
+            _, slide_idx, shape_idx, row_idx, cell_idx, para_idx = location
+            shape = prs.slides[slide_idx].shapes[shape_idx]
+            if shape.has_table:
+                cell = shape.table.rows[row_idx].cells[cell_idx]
+                if hasattr(cell, "text_frame") and para_idx < len(cell.text_frame.paragraphs):
+                    paragraph = cell.text_frame.paragraphs[para_idx]
                     
-                    # Сохранение исходного форматирования
                     original_alignment = paragraph.alignment
                     original_level = paragraph.level
-                    has_bullet = False
-                    if hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet"):
-                        has_bullet = True
-
-                    # Извлечение исходного цвета перед очисткой текста
+                    has_bullet = hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet")
+                    
                     orig_color = None
                     if paragraph.runs:
                         try:
                             if hasattr(paragraph.runs[0].font.color, 'rgb'):
                                 orig_color = paragraph.runs[0].font.color.rgb
-                        except:
-                            pass
+                        except: pass
 
-                    # Сохранение исходных размеров шрифта
-                    original_font_sizes = []
-                    for run in paragraph.runs:
-                        if hasattr(run, "font") and hasattr(run.font, "size"):
-                            original_font_sizes.append(run.font.size)
-                        else:
-                            original_font_sizes.append(None)  # None означает использование размера по умолчанию
+                    original_font_sizes = [
+                        run.font.size if hasattr(run, "font") and hasattr(run.font, "size") else None 
+                        for run in paragraph.runs
+                    ]
                     
-                    # Присвоение нового текста
                     paragraph.text = translated_text
                     
-                    # Установка шрифта "Microsoft YaHei" для всех прогонов (runs) с сохранением размера
                     for idx, run in enumerate(paragraph.runs):
                         run.font.name = "Microsoft YaHei"
-                        # Если сохранен размер шрифта, применяем его
                         if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
                             run.font.size = original_font_sizes[idx]
-                        
-                        # Применяем исходный цвет, если он был найден
                         if orig_color:
                             run.font.color.rgb = orig_color
                     
-                    # Восстановление форматирования абзаца
                     paragraph.alignment = original_alignment
                     paragraph.level = original_level
                     if has_bullet and hasattr(paragraph, "format"):
-                        try:
-                            paragraph.format.bullet.enable = True
-                        except:
-                            logging.warning("Не удалось восстановить форматирование маркеров (bullets)")
-            
-            elif location[0] == "text":
-                _, slide_idx, shape_idx, _ = location
-                shape = prs.slides[slide_idx].shapes[shape_idx]
-                shape.text = translated_text
-                if hasattr(shape, "text_frame"):
-                    for paragraph in shape.text_frame.paragraphs:
-                        for run in paragraph.runs:
-                            run.font.name = "Microsoft YaHei"
-                
-            elif location[0] == "table":
-                _, slide_idx, shape_idx, row_idx, cell_idx, para_idx = location
-                shape = prs.slides[slide_idx].shapes[shape_idx]
-                if shape.has_table:
-                    cell = shape.table.rows[row_idx].cells[cell_idx]
-                    if hasattr(cell, "text_frame") and para_idx < len(cell.text_frame.paragraphs):
-                        paragraph = cell.text_frame.paragraphs[para_idx]
-                        
-                        # Сохранение исходного форматирования для таблиц
-                        original_alignment = paragraph.alignment
-                        original_level = paragraph.level
-                        has_bullet = False
-                        if hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet"):
-                            has_bullet = True
-                        
-                        orig_color = None
-                        if paragraph.runs:
-                            try:
-                                if hasattr(paragraph.runs[0].font.color, 'rgb'):
-                                    orig_color = paragraph.runs[0].font.color.rgb
-                            except:
-                                pass
+                        try: paragraph.format.bullet.enable = True
+                        except: logging.warning("Не удалось восстановить форматирование маркеров в таблице")
 
-                        original_font_sizes = []
-                        for run in paragraph.runs:
-                            if hasattr(run, "font") and hasattr(run.font, "size"):
-                                original_font_sizes.append(run.font.size)
-                            else:
-                                original_font_sizes.append(None)
-                        
-                        paragraph.text = translated_text
-                        
-                        for idx, run in enumerate(paragraph.runs):
-                            run.font.name = "Microsoft YaHei"
-                            if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
-                                run.font.size = original_font_sizes[idx]
-                            
-                            if orig_color:
-                                run.font.color.rgb = orig_color
-                        
-                        paragraph.alignment = original_alignment
-                        paragraph.level = original_level
-                        if has_bullet and hasattr(paragraph, "format"):
-                            try:
-                                paragraph.format.bullet.enable = True
-                            except:
-                                logging.warning("Не удалось восстановить форматирование маркеров в таблице")
+def process_presentation(input_file):
+    """Основной цикл обработки файла."""
+    logging.info(f"Обработка файла: {input_file}")
+    print(f"\nОбработки файла: {os.path.basename(input_file)}")
+    
+    try:
+        prs = Presentation(input_file)
         
-        # Сохранение переведенной презентации
+        # 1. Извлечение
+        all_texts, text_locations = collect_text_data(prs)
+        
+        if not all_texts:
+            logging.info(f"В файле {input_file} текст не найден")
+            return
+        
+        # 2. Перевод
+        translated_texts = translate_all(all_texts)
+        
+        # 3. Обновление
+        apply_translations(prs, text_locations, translated_texts)
+        
+        # 4. Сохранение
         save_presentation(prs, input_file)
         
     except Exception as e:
