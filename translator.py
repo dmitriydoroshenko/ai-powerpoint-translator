@@ -72,8 +72,14 @@ def _translate_batch(batch_texts):
             temperature=0.3
         )
 
-        translated_data = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if content:
+            translated_data = json.loads(content)
+        else:
+            translated_data = {}
+
         batch_results = [translated_data.get(f"item_{i}", batch_texts[i]) for i in range(len(batch_texts))]
+
         return batch_results, response.usage
     except Exception as e:
         print(f"Ошибка при обработке батча: {e}")
