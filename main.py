@@ -49,7 +49,6 @@ def collect_text_data(prs):
     
     for slide_idx, slide in enumerate(prs.slides):
         for shape_idx, shape in enumerate(slide.shapes):
-            # Обработка обычных текстовых блоков
             if hasattr(shape, "text_frame") and shape.text.strip():
                 for para_idx, para in enumerate(shape.text_frame.paragraphs):
                     if para.text.strip():
@@ -60,7 +59,6 @@ def collect_text_data(prs):
                         all_texts.append(para.text.strip())
                         text_locations.append(("paragraph", slide_idx, shape_idx, para_idx))
             
-            # Обработка таблиц
             if shape.has_table:
                 table_texts, table_locations = extract_table_texts(shape)
                 all_texts.extend(table_texts)
@@ -71,7 +69,6 @@ def collect_text_data(prs):
 
 def _update_paragraph_formatting(paragraph, translated_text):
     """Общая логика обновления текста и сохранения форматирования параграфа."""
-    # Сохранение исходного форматирования
     original_alignment = paragraph.alignment
     original_level = paragraph.level
     has_bullet = hasattr(paragraph, "format") and hasattr(paragraph.format, "bullet")
@@ -88,10 +85,8 @@ def _update_paragraph_formatting(paragraph, translated_text):
         for run in paragraph.runs
     ]
     
-    # Применение текста
     paragraph.text = translated_text
     
-    # Восстановление свойств для новых ранов
     for idx, run in enumerate(paragraph.runs):
         run.font.name = "Microsoft YaHei"
         if idx < len(original_font_sizes) and original_font_sizes[idx] is not None:
@@ -105,7 +100,7 @@ def _update_paragraph_formatting(paragraph, translated_text):
         try: 
             paragraph.format.bullet.enable = True
         except: 
-            return False # Индикатор для логгирования ошибки
+            return False
     return True
 
 def apply_translations(prs, text_locations, translated_texts):
@@ -153,7 +148,6 @@ def process_presentation(input_file):
         raise
 
 def main():
-    # Поиск всех файлов PPTX в директории input
     input_files = glob.glob('input/*.pptx')
     
     if not input_files:
