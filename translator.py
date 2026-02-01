@@ -1,6 +1,5 @@
 import os
 import json
-import logging
 import time
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -17,11 +16,9 @@ SYSTEM_ROLE = (
     "Output: Return a valid JSON object."
 )
 
-BATCH_SIZE=30
+BATCH_SIZE = 30
 
 def translate_all(texts):
-    """Принимает список текстов и возвращает перевод."""
-
     if not texts:
         print("Список текстов пуст.")
         return []
@@ -30,27 +27,33 @@ def translate_all(texts):
     batches = [texts[i:i + BATCH_SIZE] for i in range(0, total_texts, BATCH_SIZE)]
     translated_result = []
     
+    total_prompt = 0
+    total_completion = 0
+    
     print(f"\n{'='*20}")
     print(f"🚀 НАЧАЛО ПЕРЕВОДА")
-    print(f"Всего строк: {total_texts}")
-    print(f"Размер батча: {BATCH_SIZE}")
+    print(f"Всего строк: {total_texts} (Всего батчей: {len(batches)})")
     print(f"{'='*20}\n")
 
     for i, batch in enumerate(batches):
-        current_count = len(translated_result)
-        logging.info(f"Translating batch {i+1}/{len(batches)} (size: {len(batch)})")
+        print(f"⏳ Обработка батча {i+1}/{len(batches)}... (Строк в батче: {len(batch)})")
         
-        print(f"⏳ Обработка батча {i+1}/{len(batches)}... (Переведено: {current_count}/{total_texts})", end="\r")
-        
-        translations = _translate_batch(batch)
+        translations, usage = _translate_batch(batch)
         translated_result.extend(translations)
+        
+        if usage:
+            total_prompt += usage.prompt_tokens
+            total_completion += usage.completion_tokens
         
         if i < len(batches) - 1:
             time.sleep(1) 
 
+    cost = (total_prompt * 1.75 / 1_000_000) + (total_completion * 14.00 / 1_000_000)
+
     print(f"\n\n{'='*20}")
     print(f"✅ ПЕРЕВОД ЗАВЕРШЕН")
-    print(f"Итого обработано: {len(translated_result)}/{total_texts}")
+    print(f"Итого обработано строк: {len(translated_result)}/{total_texts}")
+    print(f"Токены: {total_prompt + total_completion} | Общая стоимость: ${cost:.4f}")
     print(f"{'='*20}\n")
 
     return translated_result
@@ -71,15 +74,7 @@ def _translate_batch(batch_texts):
 
         translated_data = json.loads(response.choices[0].message.content)
         batch_results = [translated_data.get(f"item_{i}", batch_texts[i]) for i in range(len(batch_texts))]
-        
-        _log_usage(response.usage)
-        return batch_results
-
+        return batch_results, response.usage
     except Exception as e:
-        logging.error(f"Error in _translate_batch: {e}")
-        return batch_texts
-
-def _log_usage(usage):
-    """Расчет стоимости."""
-    cost = (usage.prompt_tokens * 1.75 / 1_000_000) + (usage.completion_tokens * 14.00 / 1_000_000)
-    logging.info(f"Tokens: {usage.total_tokens} | Cost: ${cost:.4f}")
+        print(f"Ошибка при обработке батча: {e}")
+        return batch_texts, None
