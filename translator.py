@@ -27,8 +27,8 @@ def translate_all(texts):
     batches = [texts[i:i + BATCH_SIZE] for i in range(0, total_texts, BATCH_SIZE)]
     translated_result = []
     
-    total_prompt = 0
-    total_completion = 0
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
     
     print(f"\n{'='*20}")
     print(f"🚀 НАЧАЛО ПЕРЕВОДА")
@@ -42,18 +42,18 @@ def translate_all(texts):
         translated_result.extend(translations)
         
         if usage:
-            total_prompt += usage.prompt_tokens
-            total_completion += usage.completion_tokens
+            total_prompt_tokens += usage.prompt_tokens
+            total_completion_tokens += usage.completion_tokens
         
         if i < len(batches) - 1:
             time.sleep(1) 
 
-    cost = (total_prompt * 1.75 / 1_000_000) + (total_completion * 14.00 / 1_000_000)
+    cost = (total_prompt_tokens * 1.75 / 1_000_000) + (total_completion_tokens * 14.00 / 1_000_000)
 
     print(f"\n\n{'='*20}")
     print(f"✅ ПЕРЕВОД ЗАВЕРШЕН")
     print(f"Итого обработано строк: {len(translated_result)}/{total_texts}")
-    print(f"Токены: {total_prompt + total_completion} | Общая стоимость: ${cost:.4f}")
+    print(f"Токены: {total_prompt_tokens + total_completion_tokens} | Общая стоимость: ${cost:.4f}")
     print(f"{'='*20}\n")
 
     return translated_result
